@@ -17,3 +17,12 @@ class TrainConfig:
     dropout: float = 0.1
     device: str = "cpu"
     seed: int = 42
+
+
+@dataclass
+class DatabaseConfig:
+    host: str = "127.0.0.1"
+    port: int = 3306
+    user: str = "root"
+    password: str = "123456"
+    database: str = "mini_llm_chat"

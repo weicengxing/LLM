@@ -2,6 +2,8 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
+UNK_TOKEN = "<UNK>"
+
 
 @dataclass
 class CharTokenizer:
@@ -10,7 +12,7 @@ class CharTokenizer:
 
     @classmethod
     def from_text(cls, text: str) -> "CharTokenizer":
-        vocab = sorted(set(text))
+        vocab = [UNK_TOKEN] + sorted(set(text))
         stoi = {ch: idx for idx, ch in enumerate(vocab)}
         itos = {idx: ch for ch, idx in stoi.items()}
         return cls(stoi=stoi, itos=itos)
@@ -20,14 +22,15 @@ class CharTokenizer:
         return len(self.stoi)
 
     def encode(self, text: str) -> list[int]:
-        unknown = [ch for ch in text if ch not in self.stoi]
-        if unknown:
-            missing = "".join(sorted(set(unknown)))
-            raise ValueError(f"Input contains unseen characters: {missing!r}")
-        return [self.stoi[ch] for ch in text]
+        unk_id = self.stoi[UNK_TOKEN]
+        return [self.stoi.get(ch, unk_id) for ch in text]
 
     def decode(self, token_ids: list[int]) -> str:
-        return "".join(self.itos[token_id] for token_id in token_ids)
+        chars = []
+        for token_id in token_ids:
+            token = self.itos[token_id]
+            chars.append("[?]" if token == UNK_TOKEN else token)
+        return "".join(chars)
 
     def save(self, path: Path) -> None:
         path.write_text(

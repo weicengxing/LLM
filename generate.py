@@ -9,7 +9,7 @@ from src.mini_llm.generation import generate_text
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate text with the trained Mini LLM.")
-    parser.add_argument("--prompt", type=str, default="语言模型", help="Generation prompt.")
+    parser.add_argument("--prompt", type=str, default="language model", help="Generation prompt.")
     parser.add_argument("--max-new-tokens", type=int, default=120, help="Maximum tokens to generate.")
     parser.add_argument("--temperature", type=float, default=0.8, help="Sampling temperature.")
     parser.add_argument("--top-k", type=int, default=20, help="Top-k sampling.")

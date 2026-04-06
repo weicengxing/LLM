@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>本地聊天助手</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <aside class="sidebar">
+        <div class="sidebar-top">
+          <div class="brand">
+            <div class="brand-mark">LLM</div>
+            <div>
+              <h1>本地聊天助手</h1>
+              <p>单用户模式，MySQL 持久化会话</p>
+            </div>
+          </div>
+
+          <div class="status-card">
+            <span class="status-label">模型状态</span>
+            <strong id="model-status">检查中...</strong>
+            <p id="status-detail">正在连接本地服务</p>
+          </div>
+
+          <section class="sessions-card">
+            <div class="sessions-header">
+              <div>
+                <span class="status-label">会话列表</span>
+                <p class="sessions-subtitle">一个 session 包含多轮对话</p>
+              </div>
+              <button id="new-session-button" type="button">新建</button>
+            </div>
+            <div id="session-list" class="session-list"></div>
+          </section>
+        </div>
+      </aside>
+
+      <main class="chat-panel">
+        <header class="chat-header">
+          <div>
+            <h2>聊天窗口</h2>
+            <p id="session-title">请选择或新建一个会话</p>
+          </div>
+        </header>
+
+        <section id="chat-log" class="chat-log">
+          <article class="message assistant">
+            <div class="bubble">
+              页面已经准备好了。请先在左侧新建一个会话，然后开始聊天。
+            </div>
+          </article>
+        </section>
+
+        <form id="chat-form" class="composer">
+          <label class="sr-only" for="message-input">消息输入框</label>
+          <textarea
+            id="message-input"
+            name="message"
+            rows="3"
+            placeholder="输入你想说的话..."
+            maxlength="1000"
+          ></textarea>
+          <div class="composer-actions">
+            <span class="hint">Shift + Enter 换行，Enter 发送</span>
+            <button id="send-button" type="submit">发送</button>
+          </div>
+        </form>
+      </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+  </body>
+</html>
