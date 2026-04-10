@@ -4,9 +4,15 @@ const messageInput = document.getElementById("message-input");
 const sendButton = document.getElementById("send-button");
 const modelStatus = document.getElementById("model-status");
 const statusDetail = document.getElementById("status-detail");
+const statusPill = document.getElementById("status-pill");
 const sessionList = document.getElementById("session-list");
 const sessionTitle = document.getElementById("session-title");
 const newSessionButton = document.getElementById("new-session-button");
+const sessionModal = document.getElementById("session-modal");
+const sessionModalForm = document.getElementById("session-modal-form");
+const sessionTitleInput = document.getElementById("session-title-input");
+const sessionModalClose = document.getElementById("session-modal-close");
+const sessionModalCancel = document.getElementById("session-modal-cancel");
 
 let currentSessionId = null;
 
@@ -16,8 +22,11 @@ function appendMessage(role, content) {
 
   const bubble = document.createElement("div");
   bubble.className = "bubble";
-  bubble.textContent = content;
 
+  const paragraph = document.createElement("p");
+  paragraph.textContent = content;
+
+  bubble.appendChild(paragraph);
   article.appendChild(bubble);
   chatLog.appendChild(article);
   chatLog.scrollTop = chatLog.scrollHeight;
@@ -25,17 +34,34 @@ function appendMessage(role, content) {
 
 function setLoadingState(loading) {
   sendButton.disabled = loading;
-  sendButton.textContent = loading ? "思考中..." : "发送";
+  sendButton.textContent = loading ? "生成中..." : "发送消息";
+}
+
+function setStatusState(kind, label) {
+  statusPill.className = `status-pill ${kind}`;
+  statusPill.textContent = label;
 }
 
 function clearMessages() {
   chatLog.innerHTML = "";
 }
 
+function openSessionModal() {
+  sessionModal.classList.remove("hidden");
+  sessionModal.setAttribute("aria-hidden", "false");
+  sessionTitleInput.value = "";
+  window.setTimeout(() => sessionTitleInput.focus(), 0);
+}
+
+function closeSessionModal() {
+  sessionModal.classList.add("hidden");
+  sessionModal.setAttribute("aria-hidden", "true");
+}
+
 function renderMessages(messages) {
   clearMessages();
   if (messages.length === 0) {
-    appendMessage("assistant", "这个会话还是空的，先发第一条消息吧。");
+    appendMessage("assistant", "这个会话还是空的。发出第一条消息，让它开始记录你的思路吧。");
     return;
   }
 
@@ -47,11 +73,11 @@ function renderMessages(messages) {
 function renderSessions(sessions) {
   sessionList.innerHTML = "";
   if (sessions.length === 0) {
-    sessionList.innerHTML = "<p class=\"sessions-subtitle\">还没有会话。</p>";
-    sessionTitle.textContent = "请先新建一个会话";
+    sessionList.innerHTML = '<p class="sessions-subtitle">还没有会话。点右上角按钮创建第一个。</p>';
+    sessionTitle.textContent = "选择一个会话开始交流";
     currentSessionId = null;
     clearMessages();
-    appendMessage("assistant", "请先在左侧新建一个会话，然后再开始聊天。");
+    appendMessage("assistant", "先在左侧创建一个会话，然后我们就能开始新的对话。");
     return;
   }
 
@@ -67,7 +93,7 @@ function renderSessions(sessions) {
         <span class="session-item-title">${session.title}</span>
         <span class="session-delete" data-delete-id="${session.id}">删除</span>
       </span>
-      <span class="session-item-preview">${session.last_message || "暂无消息"}</span>
+      <span class="session-item-preview">${session.last_message || "暂时还没有消息"}</span>
       <span class="session-item-meta">${session.message_count ?? 0} 条消息</span>
     `;
     button.addEventListener("click", (event) => {
@@ -122,22 +148,20 @@ async function refreshStatus() {
   try {
     const response = await fetch("/api/health");
     const data = await response.json();
-    modelStatus.textContent = data.ready ? "已就绪" : "未训练";
+    modelStatus.textContent = data.ready ? "模型已就绪" : "模型尚未训练";
+    setStatusState(data.ready ? "success" : "pending", data.ready ? "已就绪" : "待训练");
     statusDetail.textContent = data.ready
-      ? `运行设备：${data.device}，模型目录：${data.checkpoint_dir}`
-      : "请先运行 python train.py 生成模型权重";
+      ? `当前运行设备：${data.device}，模型目录：${data.checkpoint_dir}`
+      : "请先运行 python train.py 生成模型权重文件。";
     renderSessions(data.sessions || []);
   } catch (error) {
-    modelStatus.textContent = "服务异常";
-    statusDetail.textContent = "无法连接本地后端服务";
+    modelStatus.textContent = "服务连接失败";
+    setStatusState("error", "异常");
+    statusDetail.textContent = "无法连接本地后端服务，请检查 Flask 和数据库状态。";
   }
 }
 
-async function createSession() {
-  const title = window.prompt("请输入会话标题：", "新会话");
-  if (title === null) {
-    return;
-  }
+async function createSession(title = "") {
   const response = await fetch("/api/sessions", {
     method: "POST",
     headers: {
@@ -155,10 +179,11 @@ async function createSession() {
   sessionTitle.textContent = data.session.title;
   await loadSessions(currentSessionId);
   renderMessages([]);
+  closeSessionModal();
 }
 
 async function deleteSession(sessionId) {
-  const confirmed = window.confirm("确定删除这个会话吗？这会同时删除该会话下的所有消息。");
+  const confirmed = window.confirm("确定删除这个会话吗？该会话下的全部消息也会一起删除。");
   if (!confirmed) {
     return;
   }
@@ -184,7 +209,7 @@ chatForm.addEventListener("submit", async (event) => {
     return;
   }
   if (currentSessionId === null) {
-    appendMessage("assistant", "请先创建一个会话。");
+    appendMessage("assistant", "请先创建一个会话，再发送消息。");
     return;
   }
 
@@ -227,10 +252,35 @@ messageInput.addEventListener("keydown", (event) => {
 });
 
 newSessionButton.addEventListener("click", async () => {
+  openSessionModal();
+});
+
+sessionModalClose.addEventListener("click", () => {
+  closeSessionModal();
+});
+
+sessionModalCancel.addEventListener("click", () => {
+  closeSessionModal();
+});
+
+sessionModal.addEventListener("click", (event) => {
+  if (event.target === sessionModal) {
+    closeSessionModal();
+  }
+});
+
+sessionModalForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
   try {
-    await createSession();
+    await createSession(sessionTitleInput.value.trim());
   } catch (error) {
     appendMessage("assistant", `创建会话失败：${error.message}`);
+  }
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !sessionModal.classList.contains("hidden")) {
+    closeSessionModal();
   }
 });
 

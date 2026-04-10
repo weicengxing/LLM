@@ -3,34 +3,70 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>本地聊天助手</title>
+    <title>栖语 Mini LLM</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;700&family=Outfit:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
   </head>
   <body>
+    <div class="ambient ambient-one"></div>
+    <div class="ambient ambient-two"></div>
+    <div class="noise"></div>
+
     <div class="page-shell">
       <aside class="sidebar">
         <div class="sidebar-top">
-          <div class="brand">
-            <div class="brand-mark">LLM</div>
-            <div>
-              <h1>本地聊天助手</h1>
-              <p>单用户模式，MySQL 持久化会话</p>
+          <section class="hero-card">
+            <div class="brand">
+              <div class="brand-mark">
+                <span class="brand-mark-ring"></span>
+                <span class="brand-mark-text">QY</span>
+              </div>
+              <div class="brand-copy">
+                <p class="eyebrow">Mini LLM Studio</p>
+                <h1>栖语智能对话</h1>
+                <p>
+                  本地模型、会话存档与浏览器聊天整合在一个工作台里，适合轻量实验和日常体验。
+                </p>
+              </div>
             </div>
-          </div>
 
-          <div class="status-card">
-            <span class="status-label">模型状态</span>
-            <strong id="model-status">检查中...</strong>
-            <p id="status-detail">正在连接本地服务</p>
-          </div>
+            <div class="hero-metrics">
+              <article class="metric-tile">
+                <span class="metric-label">运行方式</span>
+                <strong>Local-first</strong>
+              </article>
+              <article class="metric-tile">
+                <span class="metric-label">会话存储</span>
+                <strong>MySQL</strong>
+              </article>
+            </div>
+          </section>
+
+          <section class="status-card">
+            <div class="card-heading">
+              <div>
+                <span class="section-tag">状态面板</span>
+                <h2>模型就绪情况</h2>
+              </div>
+              <span id="status-pill" class="status-pill pending">连接中</span>
+            </div>
+            <strong id="model-status">正在检测模型</strong>
+            <p id="status-detail">请稍候，正在连接本地服务与会话数据。</p>
+          </section>
 
           <section class="sessions-card">
             <div class="sessions-header">
               <div>
-                <span class="status-label">会话列表</span>
-                <p class="sessions-subtitle">一个 session 包含多轮对话</p>
+                <span class="section-tag">会话列表</span>
+                <h2>最近对话</h2>
+                <p class="sessions-subtitle">每个会话都会保留消息历史，方便继续追问。</p>
               </div>
-              <button id="new-session-button" type="button">新建</button>
+              <button id="new-session-button" class="ghost-button" type="button">新建会话</button>
             </div>
             <div id="session-list" class="session-list"></div>
           </section>
@@ -39,35 +75,73 @@
 
       <main class="chat-panel">
         <header class="chat-header">
-          <div>
-            <h2>聊天窗口</h2>
-            <p id="session-title">请选择或新建一个会话</p>
+          <div class="chat-header-main">
+            <div>
+              <span class="section-tag">对话工作台</span>
+              <h2 id="session-title">选择一个会话开始交流</h2>
+              <p class="chat-subtitle">输入问题、记录灵感，或让模型帮你整理思路。</p>
+            </div>
+            <div class="chat-badges">
+              <span class="chat-badge">多轮上下文</span>
+              <span class="chat-badge">本地推理</span>
+            </div>
           </div>
         </header>
 
         <section id="chat-log" class="chat-log">
           <article class="message assistant">
             <div class="bubble">
-              页面已经准备好了。请先在左侧新建一个会话，然后开始聊天。
+              <p>界面已经准备好了。先在左侧创建一个会话，然后我们就可以开始聊天。</p>
             </div>
           </article>
         </section>
 
         <form id="chat-form" class="composer">
           <label class="sr-only" for="message-input">消息输入框</label>
-          <textarea
-            id="message-input"
-            name="message"
-            rows="3"
-            placeholder="输入你想说的话..."
-            maxlength="1000"
-          ></textarea>
-          <div class="composer-actions">
-            <span class="hint">Shift + Enter 换行，Enter 发送</span>
-            <button id="send-button" type="submit">发送</button>
+          <div class="composer-shell">
+            <textarea
+              id="message-input"
+              name="message"
+              rows="3"
+              placeholder="输入你的问题、想法或任务..."
+              maxlength="1000"
+            ></textarea>
+            <div class="composer-actions">
+              <span class="hint">Enter 发送，Shift + Enter 换行</span>
+              <button id="send-button" type="submit">发送消息</button>
+            </div>
           </div>
         </form>
       </main>
+    </div>
+
+    <div id="session-modal" class="modal-backdrop hidden" aria-hidden="true">
+      <div class="session-modal" role="dialog" aria-modal="true" aria-labelledby="session-modal-title">
+        <div class="modal-header">
+          <div>
+            <span class="section-tag">新建会话</span>
+            <h2 id="session-modal-title">给这段对话起个名字</h2>
+          </div>
+          <button id="session-modal-close" class="modal-close" type="button" aria-label="关闭">
+            ×
+          </button>
+        </div>
+        <form id="session-modal-form" class="modal-form">
+          <label class="modal-label" for="session-title-input">会话标题</label>
+          <input
+            id="session-title-input"
+            class="modal-input"
+            name="title"
+            type="text"
+            maxlength="60"
+            placeholder="比如：深夜随想"
+          />
+          <div class="modal-actions">
+            <button id="session-modal-cancel" class="ghost-button" type="button">取消</button>
+            <button id="session-modal-submit" type="submit">创建会话</button>
+          </div>
+        </form>
+      </div>
     </div>
 
     <script src="{{ url_for('static', filename='app.js') }}"></script>
